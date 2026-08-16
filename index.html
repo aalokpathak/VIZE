@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vize · Thought to Image</title>
+    <!-- Google Fonts for UI and beautiful Canvas layouts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link External Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- LEFT PANEL: Controls -->
+    <div class="left-panel">
+        <div class="top-bar">
+            <div class="brand">
+                <h1>VIZE</h1>
+                <span>thought → image</span>
+            </div>
+            <div id="statusLbl" class="status-lbl">Auto Layout</div>
+        </div>
+
+        <div class="scroll-content">
+            <!-- SECTION 1: Content -->
+            <div class="card">
+                <div class="section-label">Content</div>
+                
+                <div>
+                    <input type="text" id="titleInput" placeholder="Enter title (optional)..." style="margin-bottom: 12px;">
+                </div>
+
+                <div>
+                    <textarea id="contentInput" placeholder="Write your thoughts or copy/paste a quote here..."></textarea>
+                    <div id="charCounter" class="char-counter">0 chars</div>
+                </div>
+
+                <div>
+                    <label class="section-label" style="font-size: 10px; margin-bottom: 4px;">Canvas Font Style</label>
+                    <select id="fontStyleSelect">
+                        <option value="Sans-Serif">Geometric Sans-Serif</option>
+                        <option value="Serif Elegant">Elegant Serif (Playfair)</option>
+                        <option value="Modern Serif">Modern Serif (Lora)</option>
+                        <option value="Monospace Minimal">Minimal Monospace</option>
+                        <option value="Geometric Clean">Plus Jakarta Sans</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Layout Mode & Sliders -->
+            <div class="card">
+                <div class="section-label">
+                    <span>Layout & Spacing</span>
+                    <button id="resetBtn" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:10px; font-weight:600; display:flex; align-items:center; gap:2px;">↺ Reset</button>
+                </div>
+
+                <!-- Mode Select Segmented Button -->
+                <div class="segmented-control" style="margin-bottom: 10px;">
+                    <label>
+                        <input type="radio" name="mode" value="auto" checked> Auto Fit
+                    </label>
+                    <label>
+                        <input type="radio" name="mode" value="fill"> Fill Space
+                    </label>
+                    <label>
+                        <input type="radio" name="mode" value="manual"> Manual
+                    </label>
+                </div>
+
+                <div class="sliders-group">
+                    <!-- Slider 1: Font Size -->
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span class="slider-label">Font Size</span>
+                            <span id="fontScaleVal" class="slider-value">42pt</span>
+                        </div>
+                        <input type="range" id="fontScaleSlider" class="range-slider" min="16" max="96" value="42">
+                    </div>
+
+                    <!-- Slider 2: Margins -->
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span class="slider-label">Side Margins</span>
+                            <span id="marginVal" class="slider-value">52px</span>
+                        </div>
+                        <input type="range" id="marginSlider" class="range-slider" min="20" max="180" value="52">
+                    </div>
+
+                    <!-- Slider 3: Vertical Safe Padding -->
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span class="slider-label">Vertical Padding</span>
+                            <span id="safePadVal" class="slider-value">120px</span>
+                        </div>
+                        <input type="range" id="safePadSlider" class="range-slider" min="40" max="300" value="120">
+                    </div>
+
+                    <!-- Slider 4: Content Zoom (Scale entire content) -->
+                    <div class="slider-row">
+                        <div class="slider-header">
+                            <span class="slider-label">Content Zoom</span>
+                            <span id="zoomVal" class="slider-value">100%</span>
+                        </div>
+                        <input type="range" id="zoomSlider" class="range-slider" min="50" max="150" value="100">
+                    </div>
+                </div>
+
+                <!-- Spinners for fine tuning -->
+                <div class="spinner-grid">
+                    <div class="spinner-row">
+                        <span>Line Height</span>
+                        <div class="spinner-input-wrap">
+                            <button class="spinner-btn" data-action="down" data-target="lineH" data-step="4">▼</button>
+                            <input type="text" id="lineH" class="spinner-input" value="158" readonly>
+                            <span class="spinner-unit">%</span>
+                            <button class="spinner-btn" data-action="up" data-target="lineH" data-step="4">▲</button>
+                        </div>
+                    </div>
+                    <div class="spinner-row">
+                        <span>Paragraph Gap</span>
+                        <div class="spinner-input-wrap">
+                            <button class="spinner-btn" data-action="down" data-target="paraGap" data-step="5">▼</button>
+                            <input type="text" id="paraGap" class="spinner-input" value="115" readonly>
+                            <span class="spinner-unit">%</span>
+                            <button class="spinner-btn" data-action="up" data-target="paraGap" data-step="5">▲</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Visual Elements & Alignments -->
+            <div class="card">
+                <div class="section-label">Canvas Elements</div>
+
+                <!-- Text Align Segmented Control -->
+                <div style="margin-bottom: 8px;">
+                    <label class="section-label" style="font-size: 10px; margin-bottom: 4px;">Alignment</label>
+                    <div class="segmented-control">
+                        <label>
+                            <input type="radio" name="align" value="left"> Left
+                        </label>
+                        <label>
+                            <input type="radio" name="align" value="center" checked> Center
+                        </label>
+                        <label>
+                            <input type="radio" name="align" value="justify"> Justify
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Divider Style Segmented Control -->
+                <div style="margin-bottom: 8px;">
+                    <label class="section-label" style="font-size: 10px; margin-bottom: 4px;">Divider Style</label>
+                    <div class="segmented-control">
+                        <label>
+                            <input type="radio" name="divider" value="none"> None
+                        </label>
+                        <label>
+                            <input type="radio" name="divider" value="line" checked> Line
+                        </label>
+                        <label>
+                            <input type="radio" name="divider" value="dots"> Dots
+                        </label>
+                        <label>
+                            <input type="radio" name="divider" value="double"> Double
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Effects Checkboxes -->
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="vignetteCheck">
+                        <span>Vignette Shadow Effect</span>
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="cornerAccentsCheck">
+                        <span>Show Corner Accents</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="btn-bar">
+            <button class="btn btn-clear" id="clearBtn" title="Clear input text">✕ Clear</button>
+            <button class="btn btn-copy" id="copyBtn" title="Copy high-res canvas image to clipboard">⎘ Copy Image</button>
+            <button class="btn btn-save" id="saveBtn" title="Download image as file (Ctrl+S)">↓ Save Image</button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Preview Workspace -->
+    <div class="right-panel">
+        <div class="workspace-wrapper">
+            <div class="preview-meta">
+                <div class="preview-resolution">Live Preview · 1080 × 1920 (9:16)</div>
+
+                <!-- View-only zoom for the live preview canvas; does not affect the exported image -->
+                <div class="preview-zoom-row">
+                    <div class="slider-header">
+                        <span class="slider-label">Preview Zoom</span>
+                        <span id="previewZoomVal" class="slider-value" title="Click to reset to 100%">100%</span>
+                    </div>
+                    <input type="range" id="previewZoomSlider" class="range-slider" min="50" max="200" value="100" step="10">
+                </div>
+
+                <div class="preview-fill-wrap">
+                    <div id="fitLbl" class="fit-label">0% page filled</div>
+                    <div class="progress-bar-wrap">
+                        <div id="fillBar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace-row">
+                <!-- Workspace viewport containing the canvas -->
+                <div class="workspace-canvas-frame">
+                    <!-- 9:16 ratio preview viewport (width 360, height 640) for a sharp visual display -->
+                    <canvas id="previewCanvas" width="360" height="640"></canvas>
+                </div>
+
+                <!-- Theme palette sidebar: swatches lined up vertically next to the canvas -->
+                <div class="theme-sidebar">
+                    <div class="theme-sidebar-header">
+                        <span class="section-label" style="margin-bottom: 0;">Themes</span>
+                        <span id="activeThemeLbl" class="active-theme-lbl">Pure White</span>
+                        <!-- Hidden Theme Select for app state storage -->
+                        <select id="themeSelect" style="display: none;"></select>
+                    </div>
+                    <!-- Dynamic swatch layout containing previews -->
+                    <div id="swatchGrid" class="swatch-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden full-resolution render canvas (1080 x 1920) -->
+<canvas id="renderCanvas" width="1080" height="1920" style="display: none;"></canvas>
+
+<!-- Floating Toast Success/Error Message System -->
+<div id="toast">✓ Copied to clipboard!</div>
+
+<!-- Import Upgraded App Script -->
+<script src="app.js"></script>
+</body>
+</html>
