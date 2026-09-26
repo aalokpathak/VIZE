@@ -25,7 +25,117 @@ const THEMES = {
     "Lavender Haze":   { bg: [234,228,248], title: [40,20,80],    text: [58,36,100],   div: [185,168,215] },
     "Neon Night":      { bg: [4,4,12],      title: [0,255,180],    text: [0,210,150],   div: [0,80,55] },
     "Solar Flare":     { bg: [255,100,0],   title: [255,255,220],  text: [255,240,180], div: [220,70,0] },
+
+    // --- Gradient themes ---
+    // grad.angle follows CSS linear-gradient degrees (0 = bottom→top, 90 = left→right).
+    // grad.glows are soft radial light blobs layered on top (x/y/r relative to canvas width/height).
+    "Sunset Reel": {
+        bg: [255,70,70], title: [255,255,255], text: [255,255,255], div: [255,235,220],
+        grad: { angle: 160, stops: [[0,[255,20,110]], [0.5,[255,80,50]], [1,[255,150,0]]],
+                glows: [{ x: 0.9, y: 0.5, r: 0.55, c: [255,225,40], a: 0.75 }] }
+    },
+    "Aqua Lime": {
+        bg: [40,200,160], title: [18,18,18], text: [24,24,24], div: [30,60,50],
+        grad: { angle: 220, stops: [[0,[60,170,255]], [0.4,[20,215,200]], [0.75,[30,215,90]], [1,[245,190,20]]] }
+    },
+    "Insta Glow": {
+        bg: [220,60,120], title: [255,255,255], text: [255,245,250], div: [255,210,230],
+        grad: { angle: 30, stops: [[0,[254,218,117]], [0.3,[250,126,30]], [0.55,[214,41,118]], [0.8,[150,47,191]], [1,[79,91,213]]] }
+    },
+    "Purple Haze": {
+        bg: [150,50,200], title: [255,255,255], text: [245,235,255], div: [220,190,255],
+        grad: { angle: 150, stops: [[0,[100,40,230]], [0.55,[190,50,200]], [1,[255,90,150]]],
+                glows: [{ x: 0.15, y: 0.15, r: 0.5, c: [80,160,255], a: 0.45 }] }
+    },
+    "Ocean Dusk": {
+        bg: [40,40,110], title: [255,255,255], text: [225,230,255], div: [150,140,220],
+        grad: { angle: 180, stops: [[0,[12,20,70]], [0.55,[80,40,150]], [1,[235,95,125]]] }
+    },
+    "Aurora": {
+        bg: [8,16,34], title: [230,255,245], text: [200,235,225], div: [60,140,120],
+        grad: { angle: 180, stops: [[0,[6,12,30]], [1,[14,24,48]]],
+                glows: [{ x: 0.2, y: 0.25, r: 0.6, c: [0,230,160], a: 0.45 },
+                        { x: 0.85, y: 0.6, r: 0.55, c: [140,60,255], a: 0.45 }] }
+    },
+    "Mango Tango": {
+        bg: [255,160,40], title: [45,20,0], text: [60,28,4], div: [140,70,20],
+        grad: { angle: 135, stops: [[0,[255,225,40]], [0.55,[255,150,40]], [1,[255,90,70]]] }
+    },
+    "Cotton Candy": {
+        bg: [210,190,240], title: [50,30,90], text: [66,44,110], div: [160,130,200],
+        grad: { angle: 135, stops: [[0,[165,205,255]], [0.5,[215,190,250]], [1,[255,185,215]]] }
+    },
+    "Mint Breeze": {
+        bg: [150,230,220], title: [10,50,60], text: [20,70,80], div: [90,160,160],
+        grad: { angle: 160, stops: [[0,[190,255,215]], [1,[120,195,255]]] }
+    },
+    "Peach Fuzz": {
+        bg: [255,190,170], title: [80,30,30], text: [100,45,40], div: [210,130,120],
+        grad: { angle: 180, stops: [[0,[255,220,180]], [1,[255,150,165]]],
+                glows: [{ x: 0.8, y: 0.2, r: 0.45, c: [255,245,210], a: 0.6 }] }
+    },
+    "Cyber Grape": {
+        bg: [30,10,60], title: [255,255,255], text: [230,220,255], div: [255,60,200],
+        grad: { angle: 200, stops: [[0,[20,5,50]], [0.6,[60,15,110]], [1,[180,20,140]]],
+                glows: [{ x: 0.1, y: 0.9, r: 0.5, c: [0,220,255], a: 0.35 }] }
+    },
 };
+
+// Caption-style highlight box colours (black pill with white text, like Instagram reels)
+const HIGHLIGHT_BG = 'rgba(0,0,0,0.92)';
+const HIGHLIGHT_TEXT = 'rgb(255,255,255)';
+
+// Fill the whole canvas with a theme's background (solid or gradient + glows)
+function paintBackground(ctx, theme, w, h) {
+    ctx.fillStyle = `rgb(${theme.bg.join(',')})`;
+    ctx.fillRect(0, 0, w, h);
+    if (!theme.grad) return;
+
+    // CSS-style angle → gradient line through the centre that spans the whole box
+    const rad = theme.grad.angle * Math.PI / 180;
+    const dx = Math.sin(rad), dy = -Math.cos(rad);
+    const half = (Math.abs(w * dx) + Math.abs(h * dy)) / 2;
+    const lg = ctx.createLinearGradient(w/2 - dx*half, h/2 - dy*half, w/2 + dx*half, h/2 + dy*half);
+    theme.grad.stops.forEach(([pos, c]) => lg.addColorStop(pos, `rgb(${c.join(',')})`));
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, 0, w, h);
+
+    (theme.grad.glows || []).forEach(g => {
+        const r = g.r * Math.max(w, h);
+        const rg = ctx.createRadialGradient(g.x * w, g.y * h, 0, g.x * w, g.y * h, r);
+        rg.addColorStop(0, `rgba(${g.c.join(',')},${g.a})`);
+        rg.addColorStop(1, `rgba(${g.c.join(',')},0)`);
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, 0, w, h);
+    });
+}
+
+// CSS equivalent of a theme background, used for swatch buttons
+function themeCss(theme) {
+    if (!theme.grad) return `rgb(${theme.bg.join(',')})`;
+    const layers = (theme.grad.glows || []).map(g =>
+        `radial-gradient(circle at ${g.x*100}% ${g.y*100}%, rgba(${g.c.join(',')},${g.a}), transparent 60%)`);
+    const stops = theme.grad.stops.map(([p, c]) => `rgb(${c.join(',')}) ${p*100}%`).join(', ');
+    layers.push(`linear-gradient(${theme.grad.angle}deg, ${stops})`);
+    return layers.join(', ');
+}
+
+// Rounded caption box behind a line of text drawn at baseline `y`
+function drawHighlightBox(ctx, x, y, w, size) {
+    const padX = size * 0.35, top = y - size * 0.95, bottom = y + size * 0.3;
+    const bx = x - padX, bw = w + padX * 2, bh = bottom - top, r = size * 0.18;
+    ctx.save();
+    ctx.fillStyle = HIGHLIGHT_BG;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, top);
+    ctx.arcTo(bx + bw, top, bx + bw, top + bh, r);
+    ctx.arcTo(bx + bw, top + bh, bx, top + bh, r);
+    ctx.arcTo(bx, top + bh, bx, top, r);
+    ctx.arcTo(bx, top, bx + bw, top, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
 
 // --- CORE LAYOUT & DRAWING ALGORITHMS ---
 const dummyCanvas = document.createElement('canvas');
@@ -152,7 +262,7 @@ function estimateFillPct(lp, title, content, fontStyle) {
 }
 
 // --- RENDER ENGINE ---
-function renderImage(title, content, themeName, dividerStyle, align, vignette, cornerAccents, params) {
+function renderImage(title, content, themeName, dividerStyle, align, vignette, cornerAccents, highlight, params) {
     const canvas = document.getElementById('renderCanvas');
     const ctx = canvas.getContext('2d');
     const theme = THEMES[themeName] || THEMES["Pure White"];
@@ -163,8 +273,9 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
     ctx.restore();
     ctx.save();
 
-    // Clear canvas
+    // Clear canvas & fill background (before zoom, so zooming out never leaves empty edges)
     ctx.clearRect(0, 0, IMG_W, IMG_H);
+    paintBackground(ctx, theme, IMG_W, IMG_H);
 
     // Apply entire content zoom
     const zoom = parseFloat(params.zoom || 1.0);
@@ -173,10 +284,6 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
         ctx.scale(zoom, zoom);
         ctx.translate(-IMG_W / 2, -IMG_H / 2);
     }
-
-    // Fill Background
-    ctx.fillStyle = `rgb(${theme.bg.join(',')})`;
-    ctx.fillRect(0, 0, IMG_W, IMG_H);
 
     // Layout Text calculations
     let tLines = title ? wrapPixels(title, lp.titleSz, true, lp.contentW, params.fontStyle) : [];
@@ -202,6 +309,10 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
             let str = line.toUpperCase();
             let w = textPx(str, lp.titleSz, true, params.fontStyle);
             let x = (align === "center") ? (IMG_W - w) / 2 : (align === "left" ? lp.margin : IMG_W - lp.margin - w);
+            if (highlight) {
+                drawHighlightBox(ctx, x, cy + lp.titleSz, w, lp.titleSz);
+                ctx.fillStyle = HIGHLIGHT_TEXT;
+            }
             ctx.fillText(str, x, cy + lp.titleSz);
             cy += lp.titleLh;
         });
@@ -237,7 +348,7 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
     }
 
     // Draw Body
-    ctx.fillStyle = `rgb(${theme.text.join(',')})`;
+    ctx.fillStyle = highlight ? HIGHLIGHT_TEXT : `rgb(${theme.text.join(',')})`;
     ctx.font = `normal ${lp.bodySz}px ${font}`;
 
     bodyLines.forEach((lines, pi) => {
@@ -249,6 +360,7 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
                 let totalW = words.reduce((acc, w) => acc + textPx(w, lp.bodySz, false, params.fontStyle), 0);
                 let gap = (lp.contentW - totalW) / (words.length - 1);
                 let x = lp.margin;
+                if (highlight) drawHighlightBox(ctx, x, cy + lp.bodySz, lp.contentW, lp.bodySz);
                 words.forEach(word => {
                     ctx.fillText(word, x, cy + lp.bodySz);
                     x += textPx(word, lp.bodySz, false, params.fontStyle) + gap;
@@ -256,6 +368,7 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
             } else {
                 let w = textPx(line, lp.bodySz, false, params.fontStyle);
                 let x = (align === "center") ? (IMG_W - w) / 2 : (align === "left" ? lp.margin : IMG_W - lp.margin - w);
+                if (highlight) drawHighlightBox(ctx, x, cy + lp.bodySz, w, lp.bodySz);
                 ctx.fillText(line, x, cy + lp.bodySz);
             }
             cy += lp.lineH;
@@ -322,6 +435,7 @@ function updatePreview() {
         let divider = document.querySelector('input[name="divider"]:checked').value;
         let vignette = document.getElementById('vignetteCheck').checked;
         let cornerAccents = document.getElementById('cornerAccentsCheck').checked;
+        let highlight = document.getElementById('highlightCheck').checked;
         let params = getParams();
 
         // Character Counter with color thresholds
@@ -331,7 +445,7 @@ function updatePreview() {
         charCounter.style.color = charLen > 1500 ? "#ff6b6b" : charLen > 800 ? "#eed0a2" : "var(--text-muted)";
 
         let fullContent = content || "Your quote goes here…";
-        let lp = renderImage(title, fullContent, themeName, divider, align, vignette, cornerAccents, params);
+        let lp = renderImage(title, fullContent, themeName, divider, align, vignette, cornerAccents, highlight, params);
 
         // Update readouts if auto/fill modes are selected
         if (params.mode !== "manual") {
@@ -394,15 +508,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const swatchGrid = document.getElementById('swatchGrid');
 
     // Populate theme lists and active visual swatch buttons
+    let gradientLabelAdded = false;
     Object.keys(THEMES).forEach(name => {
         let opt = document.createElement('option');
         opt.value = name; opt.innerText = name;
         themeSelect.appendChild(opt);
 
         let t = THEMES[name];
+        if (t.grad && !gradientLabelAdded) {
+            let lbl = document.createElement('div');
+            lbl.className = 'swatch-group-lbl';
+            lbl.innerText = 'Gradients';
+            swatchGrid.appendChild(lbl);
+            gradientLabelAdded = true;
+        }
         let btn = document.createElement('button');
         btn.className = 'swatch-btn';
-        btn.style.backgroundColor = `rgb(${t.bg.join(',')})`;
+        btn.style.background = themeCss(t);
         btn.style.color = `rgb(${t.title.join(',')})`;
         btn.title = name;
         btn.onclick = (e) => {
@@ -509,6 +631,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('fontStyleSelect').value = "Sans-Serif";
         document.getElementById('cornerAccentsCheck').checked = false;
         document.getElementById('vignetteCheck').checked = false;
+        document.getElementById('highlightCheck').checked = false;
         document.querySelector('input[name="mode"][value="auto"]').checked = true;
         
         // reset theme to Pure White
