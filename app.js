@@ -74,6 +74,12 @@ const THEMES = {
         grad: { angle: 180, stops: [[0,[255,220,180]], [1,[255,150,165]]],
                 glows: [{ x: 0.8, y: 0.2, r: 0.45, c: [255,245,210], a: 0.6 }] }
     },
+    "Orange Blaze": {
+        bg: [255,120,30], title: [18,10,6], text: [18,10,6], div: [90,30,10],
+        grad: { angle: 180, stops: [[0,[250,125,40]], [0.45,[255,125,20]], [0.72,[255,95,45]], [0.9,[255,45,95]], [1,[255,20,115]]],
+                glows: [{ x: 0.0, y: 0.08, r: 0.4, c: [220,60,85], a: 0.75 },
+                        { x: 1.0, y: 0.5, r: 0.3, c: [255,225,60], a: 0.95 }] }
+    },
     "Cyber Grape": {
         bg: [30,10,60], title: [255,255,255], text: [230,220,255], div: [255,60,200],
         grad: { angle: 200, stops: [[0,[20,5,50]], [0.6,[60,15,110]], [1,[180,20,140]]],
@@ -147,8 +153,25 @@ const FONTS = {
     "Serif Elegant": "'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif",
     "Modern Serif": "'Lora', serif",
     "Monospace Minimal": "'Courier New', Courier, monospace",
-    "Geometric Clean": "'Plus Jakarta Sans', sans-serif"
+    "Geometric Clean": "'Plus Jakarta Sans', sans-serif",
+    "Story Bold": "'Figtree', 'Plus Jakarta Sans', system-ui, sans-serif"
 };
+
+// Per-font weight overrides: [body weight, title weight]. Fonts not listed use normal / bold.
+const FONT_WEIGHTS = {
+    "Story Bold": [800, 900]
+};
+
+// Line height (%) a font is designed to be set at; applied when the font is picked
+const FONT_LINE_HEIGHTS = {
+    "Story Bold": 124
+};
+const DEFAULT_LINE_HEIGHT = 158;
+
+function fontWeight(styleName, isBold) {
+    const w = FONT_WEIGHTS[styleName];
+    return w ? w[isBold ? 1 : 0] : (isBold ? 'bold' : 'normal');
+}
 
 function getCanvasFont(styleName) {
     return FONTS[styleName] || FONTS["Sans-Serif"];
@@ -156,7 +179,7 @@ function getCanvasFont(styleName) {
 
 function textPx(text, fontSize, isBold, fontStyleName) {
     const font = getCanvasFont(fontStyleName);
-    dummyCtx.font = `${isBold ? 'bold' : 'normal'} ${fontSize}px ${font}`;
+    dummyCtx.font = `${fontWeight(fontStyleName, isBold)} ${fontSize}px ${font}`;
     return dummyCtx.measureText(text).width;
 }
 
@@ -304,7 +327,7 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
     // Draw Title
     if (tLines.length) {
         ctx.fillStyle = `rgb(${theme.title.join(',')})`;
-        ctx.font = `bold ${lp.titleSz}px ${font}`;
+        ctx.font = `${fontWeight(params.fontStyle, true)} ${lp.titleSz}px ${font}`;
         tLines.forEach(line => {
             let str = line.toUpperCase();
             let w = textPx(str, lp.titleSz, true, params.fontStyle);
@@ -349,7 +372,7 @@ function renderImage(title, content, themeName, dividerStyle, align, vignette, c
 
     // Draw Body
     ctx.fillStyle = highlight ? HIGHLIGHT_TEXT : `rgb(${theme.text.join(',')})`;
-    ctx.font = `normal ${lp.bodySz}px ${font}`;
+    ctx.font = `${fontWeight(params.fontStyle, false)} ${lp.bodySz}px ${font}`;
 
     bodyLines.forEach((lines, pi) => {
         lines.forEach((line, li) => {
@@ -592,8 +615,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Dynamic fonts trigger pre-rendering load
     const fontStyleSelect = document.getElementById('fontStyleSelect');
     fontStyleSelect.addEventListener('change', () => {
-        // Simple delay to ensure browser loads fonts before canvas drawing
-        setTimeout(updatePreview, 100);
+        const style = fontStyleSelect.value;
+        // Snap line height to the font's own default, unless the user has tuned it themselves
+        const lineH = document.getElementById('lineH');
+        const presets = [DEFAULT_LINE_HEIGHT, ...Object.values(FONT_LINE_HEIGHTS)];
+        if (presets.includes(parseInt(lineH.value))) {
+            lineH.value = FONT_LINE_HEIGHTS[style] || DEFAULT_LINE_HEIGHT;
+        }
+        // Wait for the web font (both weights) before drawing, so the canvas never falls back
+        const family = getCanvasFont(style);
+        Promise.all([false, true].map(b => document.fonts.load(`${fontWeight(style, b)} 40px ${family}`)))
+            .then(updatePreview, updatePreview);
     });
 
     // Standard input bindings

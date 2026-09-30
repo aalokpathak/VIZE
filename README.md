@@ -11,12 +11,12 @@ It's a static web app (plain HTML, CSS and JavaScript). There's nothing to build
   - **Fill Space** makes the text as large as possible while still fitting on the page.
   - **Manual** gives you full control of every setting.
 - **Title + body.** The title is optional and is drawn in uppercase above the body, with a divider (Line, Dots, Double or None).
-- **5 canvas fonts:** Geometric Sans, Playfair Display, Lora, Monospace and Plus Jakarta Sans.
+- **6 canvas fonts:** Geometric Sans, Playfair Display, Lora, Monospace, Plus Jakarta Sans and Story Bold (extra-bold Figtree with tight line spacing, for the Instagram-story look).
 - **Fine-grained spacing:** font size, side margins, vertical padding, content zoom, line height and paragraph gap.
 - **Alignment:** left, center or justify.
-- **33 themes**
+- **34 themes**
   - 22 solid palettes (Pure White, Midnight Black, Warm Cream, Slate Blue, Neon Night, …)
-  - 11 **gradient themes**, including Sunset Reel, Aqua Lime, Insta Glow, Purple Haze, Ocean Dusk, Aurora, Mango Tango, Cotton Candy, Mint Breeze, Peach Fuzz and Cyber Grape. Some layer soft radial "glow" blobs over the gradient.
+  - 12 **gradient themes**, including Sunset Reel, Orange Blaze, Aqua Lime, Insta Glow, Purple Haze, Ocean Dusk, Aurora, Mango Tango, Cotton Candy, Mint Breeze, Peach Fuzz and Cyber Grape. Some layer soft radial "glow" blobs over the gradient.
 - **Caption Highlight Boxes** put each line on a rounded black box with white text, like reel captions.
 - **Effects:** vignette shadow and corner accents.
 - **Live preview** with its own preview zoom (this doesn't change the exported image) and a "page filled" meter.
