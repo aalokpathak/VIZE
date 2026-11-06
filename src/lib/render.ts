@@ -24,10 +24,43 @@ export function resolveTheme(d: Design, theme: Theme): Theme {
   };
 }
 
-const contrast = (a: RGB, b: RGB) => {
+export const contrast = (a: RGB, b: RGB) => {
   const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
 };
+
+/** Representative background colour — the average of a gradient's stops */
+function surfaceColor(theme: Theme): RGB {
+  const stops = theme.grad?.stops;
+  if (!stops?.length) return theme.bg;
+  const sum = stops.reduce<number[]>((acc, [, c]) => acc.map((v, i) => v + c[i]), [0, 0, 0]);
+  return sum.map((v) => Math.round(v / stops.length)) as RGB;
+}
+
+const saturation = ([r, g, b]: RGB) => {
+  const max = Math.max(r, g, b);
+  return max === 0 ? 0 : (max - Math.min(r, g, b)) / max;
+};
+
+/** Manual colours below this contrast against a new background get switched back to Auto */
+const MIN_OVERRIDE_CONTRAST = 3;
+
+/**
+ * When the background changes, drop colour overrides that would be unreadable on it,
+ * so the text follows the new theme instead of e.g. staying black on a black background.
+ */
+export function unreadableOverrides(d: Design, theme: Theme): Partial<Design> {
+  const surface = surfaceColor(resolveTheme(d, theme));
+  const boxed = d.effect === 'highlight';
+  const patch: Partial<Design> = {};
+  for (const key of ['textColor', 'titleColor', 'emphasisColor'] as const) {
+    const hex = d[key];
+    // Text on caption boxes sits on the box colour, not the background
+    if (!hex || (boxed && key !== 'emphasisColor')) continue;
+    if (contrast(hexToRgb(hex), surface) < MIN_OVERRIDE_CONTRAST) patch[key] = null;
+  }
+  return patch;
+}
 
 export interface Palette {
   title: string;
@@ -41,10 +74,11 @@ export function resolvePalette(d: Design, theme: Theme): Palette {
   const boxBg = hexToRgb(d.highlightColor);
   // On highlight boxes, default text is whichever of black/white reads best on the box
   const boxInk = isDark(boxBg) ? '#ffffff' : '#111111';
-  // Emphasis defaults to the theme accent, unless that's too faint against the background
-  const emBg = boxed ? boxBg : theme.bg;
-  const emDefault: RGB =
-    contrast(theme.accent, emBg) >= 2.6 ? theme.accent : isDark(emBg) ? [255, 210, 63] : [226, 40, 104];
+  // Emphasis defaults to the theme accent when it's vivid and readable; otherwise
+  // gold on dark backgrounds / raspberry on light ones, so emphasised words always pop
+  const emBg = boxed ? boxBg : surfaceColor(theme);
+  const accentPops = saturation(theme.accent) >= 0.35 && contrast(theme.accent, emBg) >= 3.5;
+  const emDefault: RGB = accentPops ? theme.accent : isDark(emBg) ? [255, 210, 63] : [226, 40, 104];
   return {
     title: d.titleColor ?? (boxed ? boxInk : rgbToHex(theme.title)),
     text: d.textColor ?? (boxed ? boxInk : rgbToHex(theme.text)),

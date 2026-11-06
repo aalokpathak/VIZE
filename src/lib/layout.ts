@@ -90,6 +90,18 @@ function splitEmphasis(p: string): RawPiece[] {
   return out;
 }
 
+/** Counts for the text as it appears in the image (emphasis markers excluded) */
+export function textStats(text: string) {
+  const visible = splitEmphasis(text.replace(/\r/g, '').trim()).map((s) => s.text).join('');
+  const words = visible.match(/\S+/g)?.length ?? 0;
+  return {
+    words,
+    chars: visible.length,
+    charsNoSpaces: visible.replace(/\s/g, '').length,
+    paragraphs: visible ? visible.split(/\n[ \t]*\n/).filter((p) => p.trim()).length : 0,
+  };
+}
+
 /** Break a paragraph's runs into hard lines (single newlines) */
 function splitLines(segments: RawPiece[]): RawPiece[][] {
   const lines: RawPiece[][] = [[]];

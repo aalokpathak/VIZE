@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { unreadableOverrides } from './lib/render';
+import { getTheme } from './lib/themes';
 
 export type Mode = 'auto' | 'fill' | 'manual';
 export type Align = 'left' | 'center' | 'right' | 'justify';
@@ -109,6 +111,8 @@ interface DesignStore extends Design {
   restore: (design: Design) => void;
 }
 
+const BACKGROUND_KEYS: (keyof Design)[] = ['themeId', 'useCustomBg', 'customFrom', 'customTo', 'customSolid', 'effect'];
+
 const pickDesign = (s: DesignStore): Design => {
   const out = {} as Record<string, unknown>;
   for (const k of Object.keys(DEFAULTS)) out[k] = s[k as keyof Design];
@@ -119,7 +123,14 @@ export const useDesign = create<DesignStore>()(
   persist(
     (set, get) => ({
       ...DEFAULTS,
-      set: (patch) => set(patch),
+      set: (patch) => {
+        // A new background may make manual font colours unreadable — fall back to Auto for those
+        if (BACKGROUND_KEYS.some((k) => k in patch)) {
+          const next = { ...pickDesign(get()), ...patch };
+          patch = { ...patch, ...unreadableOverrides(next, getTheme(next.themeId)) };
+        }
+        set(patch);
+      },
       reset: () => {
         const prev = pickDesign(get());
         set({ ...DEFAULTS });

@@ -319,20 +319,41 @@ textarea.input {
   resize: vertical;
   min-height: 150px;
   line-height: 1.55;
-  padding-bottom: 28px;
 }
-.textarea-wrap {
-  position: relative;
+
+/* Word / character counts under the text box */
+.text-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: -4px;
 }
-.counter {
-  position: absolute;
-  right: 12px;
-  bottom: 9px;
+.text-stats div {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 8px 6px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 1px;
+  min-width: 0;
+}
+.text-stats dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.text-stats dt {
   font-size: 11px;
+  font-weight: 600;
   color: var(--faint);
-  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.counter.warn {
+.text-stats.warn div:nth-child(2) dd {
   color: var(--warn);
 }
 

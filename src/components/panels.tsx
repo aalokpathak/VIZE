@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FORMATS } from '../lib/formats';
+import { textStats } from '../lib/layout';
 import { resolvePalette, resolveTheme } from '../lib/render';
 import { getTheme, themeCss } from '../lib/themes';
 import { useDesign, useStats, type Design, type Divider, type Pattern, type TextEffect } from '../store';
@@ -32,7 +33,8 @@ export function TextPanel() {
   const colors = { textColor: d.textColor, titleColor: d.titleColor, emphasisColor: d.emphasisColor };
   const [target, setTarget] = useState<ColorTarget>('textColor');
   const autoFor = { textColor: auto.text, titleColor: auto.title, emphasisColor: auto.emphasis }[target];
-  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+  // Counts what ends up in the image: title + text, without the *emphasis* markers
+  const stats = useMemo(() => textStats([title, content].filter((t) => t.trim()).join('\n\n')), [title, content]);
 
   return (
     <>
@@ -43,18 +45,19 @@ export function TextPanel() {
           value={title}
           onChange={(e) => set({ title: e.target.value })}
         />
-        <div className="textarea-wrap">
-          <textarea
-            className="input"
-            rows={8}
-            placeholder={'Write your thoughts or paste a quote…\n\nWrap words in *asterisks* to highlight them.'}
-            value={content}
-            onChange={(e) => set({ content: e.target.value })}
-          />
-          <span className={`counter${content.length > 1500 ? ' warn' : ''}`}>
-            {words} words · {content.length} chars
-          </span>
-        </div>
+        <textarea
+          className="input"
+          rows={8}
+          placeholder={'Write your thoughts or paste a quote…\n\nWrap words in *asterisks* to highlight them.'}
+          value={content}
+          onChange={(e) => set({ content: e.target.value })}
+        />
+        <dl className={`text-stats${stats.chars > 1500 ? ' warn' : ''}`} aria-live="polite">
+          <div><dt>Words</dt><dd>{stats.words.toLocaleString()}</dd></div>
+          <div><dt>Characters</dt><dd>{stats.chars.toLocaleString()}</dd></div>
+          <div><dt>No spaces</dt><dd>{stats.charsNoSpaces.toLocaleString()}</dd></div>
+          <div><dt>Paragraphs</dt><dd>{stats.paragraphs}</dd></div>
+        </dl>
         <p className="hint">
           Blank line = new paragraph · <code>*word*</code> = emphasis colour
         </p>
