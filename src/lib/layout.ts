@@ -74,14 +74,36 @@ export const fontString = (weight: number, size: number, family: string) => `${w
 // ---------- Parsing ----------
 type RawPiece = { text: string; em: boolean };
 
-/** Split one hard line into words, each made of plain / *emphasised* pieces */
-function tokenize(line: string): RawPiece[][] {
-  const segments = line
-    .split(/(\*[^*\n]+\*)/)
-    .filter(Boolean)
-    .map((s) =>
-      s.length > 2 && s.startsWith('*') && s.endsWith('*') ? { text: s.slice(1, -1), em: true } : { text: s, em: false },
-    );
+/** Markdown-style *text*, **text** or ***text*** — may span line breaks within a paragraph */
+const EMPHASIS = /(\*{1,3})(?=[^\s*])([^*]+?)(?<=\S)\1(?!\*)/g;
+
+/** Split a paragraph into plain / emphasised runs, dropping the asterisk markers */
+function splitEmphasis(p: string): RawPiece[] {
+  const out: RawPiece[] = [];
+  let last = 0;
+  for (const m of p.matchAll(EMPHASIS)) {
+    if (m.index > last) out.push({ text: p.slice(last, m.index), em: false });
+    out.push({ text: m[2], em: true });
+    last = m.index + m[0].length;
+  }
+  if (last < p.length) out.push({ text: p.slice(last), em: false });
+  return out;
+}
+
+/** Break a paragraph's runs into hard lines (single newlines) */
+function splitLines(segments: RawPiece[]): RawPiece[][] {
+  const lines: RawPiece[][] = [[]];
+  for (const seg of segments) {
+    seg.text.split('\n').forEach((text, i) => {
+      if (i > 0) lines.push([]);
+      if (text) lines[lines.length - 1].push({ text, em: seg.em });
+    });
+  }
+  return lines;
+}
+
+/** Split one hard line into words, each made of plain / emphasised pieces */
+function tokenize(segments: RawPiece[]): RawPiece[][] {
   const words: RawPiece[][] = [];
   let cur: RawPiece[] = [];
   for (const seg of segments) {
@@ -107,7 +129,7 @@ export function parseParagraphs(text: string, uppercase = false) {
     .split(/\n[ \t]*\n/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) => p.split('\n').map(tokenize));
+    .map((p) => splitLines(splitEmphasis(p)).map(tokenize));
 }
 
 type Parsed = ReturnType<typeof parseParagraphs>;

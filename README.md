@@ -23,7 +23,7 @@ It runs entirely in the browser. Nothing is uploaded anywhere, and your current 
 - **30 self-hosted fonts** in five groups: Sans, Display, Serif, Mono and Script. This includes **Story Bold** for the Instagram-story look, and two fonts that support Hindi (Devanagari): **Hind** and **Kalam**.
 - Each font comes with its own body and title weights, and an ideal line height that is applied automatically when you pick it.
 - **Font colour** for the body, the title and *emphasis* separately. The primary colours (red, yellow, blue, black, white) come first, followed by more presets, a full colour picker and a hex input. **Auto** follows the theme.
-- **Emphasis:** wrap words in `*asterisks*` to colour them.
+- **Emphasis:** wrap words in `*asterisks*` (or Markdown `**double**`) to colour them. The asterisks themselves never appear in the image.
 - **Line breaks:** a single new line breaks the line; a blank line starts a new paragraph.
 - **Signature:** an optional handle such as `@yourname`, shown at the bottom.
 
