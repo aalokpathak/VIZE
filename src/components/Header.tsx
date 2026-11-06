@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { canShareFiles, copyImage, downloadImage, resetEverything, shareImage } from '../lib/actions';
+import { canShareFiles, copyImage, downloadImage, resetEverything, shareImage, shareLink } from '../lib/actions';
 import { useDesign } from '../store';
-import { IconCopy, IconDownload, IconReset, IconShare } from './icons';
+import { IconCopy, IconDownload, IconLink, IconReset, IconShare } from './icons';
 import { Logo } from './Logo';
 
 export function Header() {
@@ -25,6 +25,10 @@ export function Header() {
         <button type="button" className="btn ghost hide-sm" onClick={copyImage} title="Copy PNG to clipboard">
           <IconCopy />
           <span>Copy</span>
+        </button>
+        <button type="button" className="btn ghost" onClick={shareLink} title="Copy a link that opens this design (with a rich preview when shared)">
+          <IconLink />
+          <span>Link</span>
         </button>
         {canShare && (
           <button type="button" className="btn ghost" onClick={shareImage} title="Share image">

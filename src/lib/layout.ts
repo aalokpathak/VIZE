@@ -1,6 +1,7 @@
-import type { Design } from '../store';
-import type { FontDef } from './fonts';
-import type { Format } from './formats';
+import type { Design } from './design.js';
+import type { FontDef } from './fontList.js';
+import type { Format } from './formats.js';
+import { createCanvas } from './platform.js';
 
 /** A run of text inside a word; `em` runs were wrapped in *asterisks* */
 export interface Piece {
@@ -49,7 +50,7 @@ export interface Layout {
 }
 
 // ---------- Measuring (cached — layout re-measures the same words many times) ----------
-const measureCtx = document.createElement('canvas').getContext('2d')!;
+let measureCtx: CanvasRenderingContext2D | null = null;
 const cache = new Map<string, number>();
 
 export function clearMeasureCache() {
@@ -60,6 +61,7 @@ function measure(text: string, font: string, spacing: number) {
   const key = `${font}|${spacing}|${text}`;
   let w = cache.get(key);
   if (w === undefined) {
+    measureCtx ??= createCanvas(1, 1).getContext('2d')!;
     measureCtx.font = font;
     measureCtx.letterSpacing = `${spacing}px`;
     w = measureCtx.measureText(text).width;
@@ -89,6 +91,10 @@ function splitEmphasis(p: string): RawPiece[] {
   if (last < p.length) out.push({ text: p.slice(last), em: false });
   return out;
 }
+
+/** The text as it appears in the image — emphasis markers removed */
+export const plainText = (text: string) =>
+  splitEmphasis(text.replace(/\r/g, '')).map((s) => s.text).join('');
 
 /** Counts for the text as it appears in the image (emphasis markers excluded) */
 export function textStats(text: string) {

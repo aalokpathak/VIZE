@@ -1,108 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULTS, pickDesign, type Design } from './lib/design';
 import { unreadableOverrides } from './lib/render';
 import { getTheme } from './lib/themes';
 
-export type Mode = 'auto' | 'fill' | 'manual';
-export type Align = 'left' | 'center' | 'right' | 'justify';
-export type VAlign = 'top' | 'center' | 'bottom';
-export type Divider = 'none' | 'line' | 'dots' | 'double' | 'diamond';
-export type TextEffect = 'none' | 'highlight' | 'shadow' | 'outline' | 'glow';
-export type Pattern = 'none' | 'grain' | 'dots' | 'grid' | 'diagonal' | 'lines';
-export type ExportType = 'png' | 'jpeg';
-
-export interface Design {
-  // Content
-  title: string;
-  content: string;
-  signature: string;
-
-  // Canvas & background
-  formatId: string;
-  themeId: string;
-  useCustomBg: boolean;
-  customFrom: string;
-  customTo: string;
-  customAngle: number;
-  customSolid: boolean;
-
-  // Typography
-  fontId: string;
-  titleUppercase: boolean;
-  /** null = use the theme's colour */
-  textColor: string | null;
-  titleColor: string | null;
-  emphasisColor: string | null;
-
-  // Layout
-  mode: Mode;
-  fontSize: number;
-  titleScale: number;
-  margin: number;
-  padding: number;
-  zoom: number;
-  lineHeight: number;
-  paraGap: number;
-  letterSpacing: number;
-  align: Align;
-  vAlign: VAlign;
-
-  // Effects
-  divider: Divider;
-  effect: TextEffect;
-  highlightColor: string;
-  pattern: Pattern;
-  patternOpacity: number;
-  vignette: boolean;
-  corners: boolean;
-  frame: boolean;
-
-  // Export
-  exportType: ExportType;
-}
-
-export const DEFAULTS: Design = {
-  title: '',
-  content: '',
-  signature: '',
-
-  formatId: 'story',
-  themeId: 'pure-white',
-  useCustomBg: false,
-  customFrom: '#7c5cff',
-  customTo: '#ff3d8b',
-  customAngle: 160,
-  customSolid: false,
-
-  fontId: 'inter',
-  titleUppercase: true,
-  textColor: null,
-  titleColor: null,
-  emphasisColor: null,
-
-  mode: 'auto',
-  fontSize: 48,
-  titleScale: 120,
-  margin: 80,
-  padding: 140,
-  zoom: 100,
-  lineHeight: 150,
-  paraGap: 100,
-  letterSpacing: 0,
-  align: 'center',
-  vAlign: 'center',
-
-  divider: 'line',
-  effect: 'none',
-  highlightColor: '#111111',
-  pattern: 'none',
-  patternOpacity: 30,
-  vignette: false,
-  corners: false,
-  frame: false,
-
-  exportType: 'png',
-};
+export * from './lib/design';
 
 interface DesignStore extends Design {
   set: (patch: Partial<Design>) => void;
@@ -112,12 +14,6 @@ interface DesignStore extends Design {
 }
 
 const BACKGROUND_KEYS: (keyof Design)[] = ['themeId', 'useCustomBg', 'customFrom', 'customTo', 'customSolid', 'effect'];
-
-const pickDesign = (s: DesignStore): Design => {
-  const out = {} as Record<string, unknown>;
-  for (const k of Object.keys(DEFAULTS)) out[k] = s[k as keyof Design];
-  return out as unknown as Design;
-};
 
 export const useDesign = create<DesignStore>()(
   persist(

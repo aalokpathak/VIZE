@@ -1,4 +1,4 @@
-import type { RGB } from './colors';
+import type { RGB } from './colors.js';
 
 export interface Glow {
   /** Centre, relative to canvas width / height (0–1) */

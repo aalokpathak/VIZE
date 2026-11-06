@@ -67,3 +67,9 @@ export const IconVAlign = ({ kind, ...p }: P & { kind: 'top' | 'center' | 'botto
     </svg>
   );
 };
+export const IconLink = (p: P) => (
+  <svg {...base(p)}><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
+);
+export const IconWand = (p: P) => (
+  <svg {...base(p)}><path d="m15 4 1-1" /><path d="m3 21 12-12" /><path d="M14 4V2M18 8h2M20 4l-1 1M14 8l2 2" /><path d="M9 3v2M7 4h4" /></svg>
+);

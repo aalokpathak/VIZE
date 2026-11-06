@@ -4,6 +4,7 @@ import { textStats } from '../lib/layout';
 import { resolvePalette, resolveTheme } from '../lib/render';
 import { getTheme, themeCss } from '../lib/themes';
 import { useDesign, useStats, type Design, type Divider, type Pattern, type TextEffect } from '../store';
+import { AiAssist } from './AiAssist';
 import { ColorPicker } from './ColorPicker';
 import { FontPicker } from './FontPicker';
 import { IconAlign, IconVAlign } from './icons';
@@ -68,6 +69,8 @@ export function TextPanel() {
           onChange={(e) => set({ signature: e.target.value })}
         />
       </Section>
+
+      <AiAssist />
 
       <Section title="Font">
         <FontPicker />

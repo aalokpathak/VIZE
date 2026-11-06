@@ -4,7 +4,8 @@ import { Header } from './components/Header';
 import { IconLayout, IconPalette, IconSparkle, IconText } from './components/icons';
 import { EffectsPanel, LayoutPanel, StylePanel, TextPanel } from './components/panels';
 import { Toast } from './components/Toast';
-import { copyImage, downloadImage, useSession } from './lib/actions';
+import { copyImage, downloadImage, openSharedDesign, useSession } from './lib/actions';
+import { loadServerConfig } from './lib/api';
 
 const TABS = [
   { id: 'text', label: 'Text', icon: IconText, Panel: TextPanel },
@@ -49,6 +50,13 @@ function Workspace() {
 export default function App() {
   // Changing the key remounts the workspace, clearing all local UI state like a page reload
   const epoch = useSession((s) => s.epoch);
+
+  useEffect(() => {
+    loadServerConfig();
+    openSharedDesign();
+    window.addEventListener('hashchange', openSharedDesign);
+    return () => window.removeEventListener('hashchange', openSharedDesign);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -1,7 +1,8 @@
-import type { Design, Pattern } from '../store';
-import { hexToRgb, isDark, luminance, mix, rgbToHex, type RGB } from './colors';
-import type { Layout, Line, TextStyle } from './layout';
-import type { Theme } from './themes';
+import { hexToRgb, isDark, luminance, mix, rgbToHex, type RGB } from './colors.js';
+import type { Design, Pattern } from './design.js';
+import type { Layout, Line, TextStyle } from './layout.js';
+import { createCanvas, type CanvasLike } from './platform.js';
+import type { Theme } from './themes.js';
 
 // ---------- Theme resolution ----------
 
@@ -89,7 +90,7 @@ export function resolvePalette(d: Design, theme: Theme): Palette {
 
 // ---------- Background ----------
 
-function paintBackground(ctx: CanvasRenderingContext2D, theme: Theme, w: number, h: number) {
+export function paintBackground(ctx: CanvasRenderingContext2D, theme: Theme, w: number, h: number) {
   ctx.fillStyle = rgbToHex(theme.bg);
   ctx.fillRect(0, 0, w, h);
   if (!theme.grad) return;
@@ -115,7 +116,7 @@ function paintBackground(ctx: CanvasRenderingContext2D, theme: Theme, w: number,
 
 // ---------- Patterns (tiles are generated once and cached) ----------
 
-const tileCache = new Map<string, HTMLCanvasElement>();
+const tileCache = new Map<string, CanvasLike>();
 
 function mulberry32(seed: number) {
   return () => {
@@ -134,8 +135,7 @@ function patternTile(type: Exclude<Pattern, 'none'>, ink: string, scale: number)
 
   const sizes = { grain: 256, dots: 36, grid: 54, diagonal: 28, lines: 64 };
   const s = type === 'grain' ? 256 : Math.round(sizes[type] * scale);
-  const c = document.createElement('canvas');
-  c.width = c.height = s;
+  const c = createCanvas(s, s);
   const x = c.getContext('2d')!;
   x.fillStyle = x.strokeStyle = ink;
   x.lineWidth = Math.max(1, 1.5 * scale);
@@ -300,7 +300,7 @@ export function renderDesign(ctx: CanvasRenderingContext2D, d: Design, theme: Th
 
   if (d.pattern !== 'none') {
     const ink = d.pattern === 'grain' ? '#000' : rgbToHex(theme.text);
-    const pat = ctx.createPattern(patternTile(d.pattern, ink, k), 'repeat');
+    const pat = ctx.createPattern(patternTile(d.pattern, ink, k) as unknown as CanvasImageSource, 'repeat');
     if (pat) {
       ctx.save();
       ctx.globalAlpha = d.pattern === 'grain' ? d.patternOpacity / 50 : d.patternOpacity / 100;

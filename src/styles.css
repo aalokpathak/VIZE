@@ -989,6 +989,98 @@ textarea.input {
   color: var(--danger);
 }
 
+/* ------------------------------------------------------------------ AI assist */
+
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, rgba(124, 92, 255, 0.5), rgba(255, 61, 139, 0.35)) border-box;
+  border-color: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  transition: background 0.15s, opacity 0.15s;
+}
+.ai-btn:last-child:nth-child(odd) {
+  grid-column: span 2;
+}
+.ai-btn svg {
+  color: var(--brand-2);
+  flex-shrink: 0;
+}
+.ai-btn:hover:not(:disabled) {
+  background:
+    linear-gradient(var(--surface-3), var(--surface-3)) padding-box,
+    linear-gradient(120deg, var(--brand-1), var(--brand-2)) border-box;
+}
+.ai-btn:disabled:not(.busy) {
+  opacity: 0.45;
+  cursor: wait;
+}
+.spinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--brand-2);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ai-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+}
+.ai-result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ai-result .chip {
+  text-align: left;
+  color: var(--text);
+}
+.ai-caption {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ai-tags {
+  font-size: 12px;
+  color: var(--focus);
+  line-height: 1.6;
+}
+.btn.small {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 12px;
+  align-self: flex-start;
+}
+
 /* ------------------------------------------------------------------ Toast */
 
 .toast {

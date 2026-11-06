@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { useDesign, useStats, type ExportType } from '../store';
+import { pickDesign, useDesign, useStats, type ExportType } from '../store';
+import { createShortLink, useServer } from './api';
 import { getFormat } from './formats';
+import { decodeDesign, encodeDesign } from './share';
 
 // ---------- Toasts ----------
 
@@ -49,6 +51,72 @@ export function resetEverything() {
       },
     },
   });
+}
+
+// ---------- Share links ----------
+
+/**
+ * Build a link to the current design. With the API online it's a /s/ link (rich preview
+ * on WhatsApp, X, etc.), shortened when Redis is configured; otherwise a plain #d= link.
+ */
+async function buildShareLink() {
+  const payload = await encodeDesign(pickDesign(useDesign.getState()));
+  const { online, shortLinks } = useServer.getState();
+  if (!online) return `${location.origin}/#d=${payload}`;
+  if (shortLinks) {
+    try {
+      return (await createShortLink(payload)).url;
+    } catch {
+      // fall through to a long link
+    }
+  }
+  return `${location.origin}/s/${payload}`;
+}
+
+const copyText = (text: string) =>
+  navigator.clipboard.writeText(text).then(() => toast('Link copied — paste it anywhere'));
+
+export async function shareLink() {
+  let url: string;
+  try {
+    url = await buildShareLink();
+  } catch {
+    return toast('Could not create a link', { kind: 'error' });
+  }
+  // Phones: native share sheet. Desktop: clipboard.
+  if (matchMedia('(pointer: coarse)').matches && navigator.share) {
+    return navigator.share({ url, title: 'VIZE design' }).catch(() => undefined);
+  }
+  try {
+    await copyText(url);
+  } catch {
+    // Some browsers drop clipboard access after an await — offer a fresh click instead
+    toast('Your link is ready', { action: { label: 'Copy link', run: () => void copyText(url).catch(() => undefined) } });
+  }
+}
+
+/** Open a design from a `#d=` link (shared links land here), with undo */
+export async function openSharedDesign() {
+  const match = /^#d=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (!match) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const shared = await decodeDesign(match[1]);
+    const prev = pickDesign(useDesign.getState());
+    useDesign.getState().restore(shared);
+    useSession.setState((s) => ({ epoch: s.epoch + 1 }));
+    toast('Opened a shared design', {
+      action: {
+        label: 'Undo',
+        run: () => {
+          useDesign.getState().restore(prev);
+          useSession.setState((s) => ({ epoch: s.epoch + 1 }));
+        },
+      },
+    });
+  } catch {
+    toast('That share link is broken or incomplete', { kind: 'error' });
+  }
 }
 
 // ---------- Export ----------
