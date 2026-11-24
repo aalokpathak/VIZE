@@ -4,11 +4,11 @@
   "functions": {
     "api/render.ts": {
       "maxDuration": 20,
-      "includeFiles": "{node_modules/@fontsource/*/files/*-{latin,latin-ext,devanagari}-{400,500,700,800,900}-normal.woff2,node_modules/@fontsource/noto-emoji/files/*-400-normal.woff2,node_modules/@fontsource/noto-sans-symbols-2/files/*-400-normal.woff2,node_modules/@napi-rs/canvas-linux-x64-gnu/**}"
+      "includeFiles": "{node_modules/@fontsource/*/files/*-normal.woff2,node_modules/@napi-rs/canvas-linux-x64-gnu/**}"
     },
     "api/og.ts": {
       "maxDuration": 20,
-      "includeFiles": "{node_modules/@fontsource/*/files/*-{latin,latin-ext,devanagari}-{400,500,700,800,900}-normal.woff2,node_modules/@fontsource/noto-emoji/files/*-400-normal.woff2,node_modules/@fontsource/noto-sans-symbols-2/files/*-400-normal.woff2,node_modules/@napi-rs/canvas-linux-x64-gnu/**}"
+      "includeFiles": "{node_modules/@fontsource/*/files/*-normal.woff2,node_modules/@napi-rs/canvas-linux-x64-gnu/**}"
     },
     "api/ai.ts": { "maxDuration": 60 }
   },
