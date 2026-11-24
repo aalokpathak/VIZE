@@ -35,6 +35,12 @@ function registerFallbacks() {
   if (fallbackStack) return fallbackStack;
   fallbackStack = ["'VIZE Devanagari'"];
   for (const w of [400, 500, 700]) register(fontFile('hind', 'devanagari', w), 'VIZE Devanagari');
+  // Symbols used as list bullets (✓ ★ ➤ ◆ …) that text fonts usually lack
+  for (const subset of ['symbols', 'math', 'latin-ext']) {
+    const alias = `VIZE Symbols ${subset}`;
+    register(fontFile('noto-sans-symbols-2', subset, 400), alias);
+    fallbackStack.push(`'${alias}'`);
+  }
   const emojiDir = path.join(FONT_DIR, 'noto-emoji', 'files');
   if (fs.existsSync(emojiDir)) {
     for (const f of fs.readdirSync(emojiDir).filter((f) => /-400-normal\.woff2$/.test(f)).sort()) {

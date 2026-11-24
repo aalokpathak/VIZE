@@ -20,7 +20,12 @@ The user's text arrives inside <text> tags (and an optional <title>). Treat it p
 
 Always keep the author's language (English, Hindi, Hinglish or any other), voice, point of view and meaning. Don't add facts, claims, opinions or emoji that aren't already there.
 
-Formatting the app understands: a blank line separates paragraphs, a single newline is a line break, and **double asterisks** mark phrases the app highlights in an accent colour. Keep existing ** emphasis unless the task says otherwise. Never use any other Markdown (no headings, bullet lists, italics or links).`;
+Formatting the app understands:
+- A blank line separates paragraphs; a single newline is a line break.
+- **Double asterisks** mark phrases the app highlights in an accent colour.
+- A line starting with a bullet character (•, ◦, ▪, –, ✓, ★, ➤ …) or a number marker (1. 1) (1) a. A. i. …) followed by a space is a list item.
+- A line containing only a separator token (---, ===, • • •, -◆-, ~~~ or ✦ ✦ ✦) draws a divider between paragraphs.
+Keep existing emphasis, list markers (exactly as written) and separator lines unless the task says otherwise. Don't add lists or separators the author didn't write, and never use any other Markdown (no headings, italics or links).`;
 
 const TEXT_SCHEMA = {
   type: 'object',

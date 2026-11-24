@@ -7,7 +7,7 @@ import { THEMES } from './themes.js';
 export type Mode = 'auto' | 'fill' | 'manual';
 export type Align = 'left' | 'center' | 'right' | 'justify';
 export type VAlign = 'top' | 'center' | 'bottom';
-export type Divider = 'none' | 'line' | 'dots' | 'double' | 'diamond';
+export type Divider = 'none' | 'line' | 'dots' | 'double' | 'diamond' | 'wave' | 'stars';
 export type TextEffect = 'none' | 'highlight' | 'shadow' | 'outline' | 'glow';
 export type Pattern = 'none' | 'grain' | 'dots' | 'grid' | 'diagonal' | 'lines';
 export type ExportType = 'png' | 'jpeg';
@@ -135,7 +135,7 @@ const ENUMS: Partial<Record<keyof Design, readonly string[]>> = {
   mode: ['auto', 'fill', 'manual'],
   align: ['left', 'center', 'right', 'justify'],
   vAlign: ['top', 'center', 'bottom'],
-  divider: ['none', 'line', 'dots', 'double', 'diamond'],
+  divider: ['none', 'line', 'dots', 'double', 'diamond', 'wave', 'stars'],
   effect: ['none', 'highlight', 'shadow', 'outline', 'glow'],
   pattern: ['none', 'grain', 'dots', 'grid', 'diagonal', 'lines'],
   exportType: ['png', 'jpeg'],

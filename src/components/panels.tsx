@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { FORMATS } from '../lib/formats';
 import { textStats } from '../lib/layout';
 import { resolvePalette, resolveTheme } from '../lib/render';
@@ -7,6 +7,7 @@ import { useDesign, useStats, type Design, type Divider, type Pattern, type Text
 import { AiAssist } from './AiAssist';
 import { ColorPicker } from './ColorPicker';
 import { FontPicker } from './FontPicker';
+import { FormatToolbar, handleFormatKeys } from './FormatToolbar';
 import { IconAlign, IconVAlign } from './icons';
 import { ThemePicker } from './ThemePicker';
 import { Field, Section, Segmented, Slider, Toggle } from './ui';
@@ -33,6 +34,7 @@ export function TextPanel() {
   const auto = useAutoPalette();
   const colors = { textColor: d.textColor, titleColor: d.titleColor, emphasisColor: d.emphasisColor };
   const [target, setTarget] = useState<ColorTarget>('textColor');
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const autoFor = { textColor: auto.text, titleColor: auto.title, emphasisColor: auto.emphasis }[target];
   // Counts what ends up in the image: title + text, without the *emphasis* markers
   const stats = useMemo(() => textStats([title, content].filter((t) => t.trim()).join('\n\n')), [title, content]);
@@ -46,9 +48,12 @@ export function TextPanel() {
           value={title}
           onChange={(e) => set({ title: e.target.value })}
         />
+        <FormatToolbar textarea={textRef} />
         <textarea
+          ref={textRef}
           className="input"
           rows={8}
+          onKeyDown={handleFormatKeys}
           placeholder={'Write your thoughts or paste a quote…\n\nWrap words in *asterisks* to highlight them.'}
           value={content}
           onChange={(e) => set({ content: e.target.value })}
@@ -60,7 +65,7 @@ export function TextPanel() {
           <div><dt>Paragraphs</dt><dd>{stats.paragraphs}</dd></div>
         </dl>
         <p className="hint">
-          Blank line = new paragraph · <code>*word*</code> = emphasis colour
+          Blank line = new paragraph · <code>**word**</code> = emphasis colour · select lines, then pick a list style
         </p>
         <input
           className="input"
@@ -302,10 +307,15 @@ export function EffectsPanel() {
             { value: 'line', label: '—' },
             { value: 'double', label: '=' },
             { value: 'dots', label: '•••' },
-            { value: 'diamond', label: '—◆—' },
+            { value: 'diamond', label: '◆' },
+            { value: 'wave', label: '〰' },
+            { value: 'stars', label: '✦' },
           ]}
         />
-        {!d.title.trim() && <p className="hint">Shown under the title — add one in the Text tab.</p>}
+        <p className="hint">
+          {d.title.trim() ? 'Shown under the title.' : 'Shown under the title — add one in the Text tab.'} For
+          separators between paragraphs, use the <strong>Separator</strong> button above the text box.
+        </p>
       </Section>
 
       <Section title="Texture">

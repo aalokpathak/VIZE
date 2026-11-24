@@ -1,4 +1,4 @@
-import type { Design } from './design.js';
+import type { Design, Divider } from './design.js';
 import type { FontDef } from './fontList.js';
 import type { Format } from './formats.js';
 import { createCanvas } from './platform.js';
@@ -19,7 +19,21 @@ export interface Line {
   w: number;
   /** Last line before a hard break / paragraph end — never justified */
   last: boolean;
+  /** Extra space above this line (between list items) */
+  gapBefore?: number;
+  /** Set on list-item lines */
+  list?: {
+    /** Marker to draw — only on an item's first line */
+    marker: string | null;
+    markerW: number;
+    /** Hanging indent: where the text starts, relative to the list block */
+    indent: number;
+    /** Width of the whole run of list items, used to align it as one block */
+    blockW: number;
+  };
 }
+
+export type LayoutBlock = { kind: 'text'; lines: Line[] } | { kind: 'sep'; style: Exclude<Divider, 'none'>; h: number };
 
 export interface TextStyle {
   font: string;
@@ -43,7 +57,7 @@ export interface Layout {
   paraGap: number;
   divGap: number;
   titleLines: Line[];
-  paras: Line[][];
+  blocks: LayoutBlock[];
   totalH: number;
   /** Share of the usable height the text occupies, 0–100 */
   fill: number;
@@ -96,9 +110,59 @@ function splitEmphasis(p: string): RawPiece[] {
 export const plainText = (text: string) =>
   splitEmphasis(text.replace(/\r/g, '')).map((s) => s.text).join('');
 
-/** Counts for the text as it appears in the image (emphasis markers excluded) */
+// ---------- Lists & separators ----------
+// Plain-text syntax, so formatting survives copy/paste, share links, the server
+// renderer and AI edits. The editor toolbar writes exactly these forms.
+
+/** A line containing only one of these becomes a separator of that style */
+export const SEPARATOR_TOKENS: Record<string, Exclude<Divider, 'none'>> = {
+  '---': 'line', '***': 'line', '___': 'line',
+  '===': 'double',
+  '• • •': 'dots', '* * *': 'dots', '···': 'dots',
+  '-◆-': 'diamond',
+  '~~~': 'wave',
+  '✦ ✦ ✦': 'stars',
+};
+
+export const separatorOf = (line: string) => SEPARATOR_TOKENS[line.trim()];
+
+/** Bullet characters understood at the start of a line (- * + are drawn as •) */
+const BULLET = /^([•◦▪‣●○■□◆◇♦★☆✓✔✗✘→➜➤▸►–\-*+])[ \t]+(?=\S)/;
+/** 1. 1) (1)  a. A)  i. iv. XII) */
+const NUMBER = /^(\(\d{1,3}\)|\d{1,3}[.)]|[a-zA-Z][.)]|(?=[ivxIVX]{2})x{0,2}(?:ix|iv|v?i{0,3})[.)]|(?=[ivxIVX]{2})X{0,2}(?:IX|IV|V?I{0,3})[.)])[ \t]+(?=\S)/;
+
+export interface ListMarker {
+  kind: 'bullet' | 'number';
+  /** Marker exactly as typed, e.g. "✓" or "3." */
+  token: string;
+  /** Length of marker + following whitespace in the source line */
+  length: number;
+}
+
+export function listMarkerOf(line: string): ListMarker | null {
+  const b = BULLET.exec(line);
+  if (b) return { kind: 'bullet', token: b[1], length: b[0].length };
+  const n = NUMBER.exec(line);
+  if (n) return { kind: 'number', token: n[1], length: n[0].length };
+  return null;
+}
+
+/** What a marker looks like in the image */
+const displayMarker = (m: ListMarker) => (m.kind === 'bullet' && /^[-*+]$/.test(m.token) ? '•' : m.token);
+
+/** The text with formatting syntax removed — what the reader actually sees */
+function visibleText(text: string) {
+  const lines = text.replace(/\r/g, '').split('\n').filter((l) => !separatorOf(l));
+  const body = lines.map((l) => {
+    const m = listMarkerOf(l);
+    return m ? l.slice(m.length) : l;
+  });
+  return splitEmphasis(body.join('\n')).map((s) => s.text).join('');
+}
+
+/** Counts for the text as it appears in the image (formatting markers excluded) */
 export function textStats(text: string) {
-  const visible = splitEmphasis(text.replace(/\r/g, '').trim()).map((s) => s.text).join('');
+  const visible = visibleText(text).trim();
   const words = visible.match(/\S+/g)?.length ?? 0;
   return {
     words,
@@ -139,44 +203,112 @@ function tokenize(segments: RawPiece[]): RawPiece[][] {
   return words;
 }
 
-/** Paragraphs are separated by blank lines; single newlines are hard line breaks */
-export function parseParagraphs(text: string, uppercase = false) {
-  const src = uppercase ? text.toUpperCase() : text;
-  return src
-    .replace(/\r/g, '')
-    .split(/\n[ \t]*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => splitLines(splitEmphasis(p)).map(tokenize));
+interface RawLine {
+  words: RawPiece[][];
+  /** Set when the line is a list item */
+  marker?: string;
 }
 
-type Parsed = ReturnType<typeof parseParagraphs>;
+export type RawBlock = { kind: 'text'; lines: RawLine[] } | { kind: 'sep'; style: Exclude<Divider, 'none'> };
 
-function wrapParagraph(hardLines: RawPiece[][][], style: TextStyle, maxW: number): Line[] {
+/** Turn one paragraph's source text into hard lines, pulling list markers off */
+function parseParagraph(p: string): RawLine[] {
+  return splitLines(splitEmphasis(p)).map((pieces) => {
+    const first = pieces[0];
+    const m = first && !first.em ? listMarkerOf(first.text) : null;
+    if (!m) return { words: tokenize(pieces) };
+    const rest = [{ ...first, text: first.text.slice(m.length) }, ...pieces.slice(1)];
+    return { words: tokenize(rest), marker: displayMarker(m) };
+  });
+}
+
+/**
+ * Blocks of the text: paragraphs (separated by blank lines; single newlines are hard
+ * line breaks) and separators (a line of `---`, `===`, `• • •`, …).
+ */
+export function parseBlocks(text: string, uppercase = false): RawBlock[] {
+  const src = (uppercase ? text.toUpperCase() : text).replace(/\r/g, '');
+  const blocks: RawBlock[] = [];
+  let para: string[] = [];
+  const flush = () => {
+    const p = para.join('\n').trim();
+    if (p) blocks.push({ kind: 'text', lines: parseParagraph(p) });
+    para = [];
+  };
+  for (const line of src.split('\n')) {
+    const sep = separatorOf(line);
+    if (sep) {
+      flush();
+      blocks.push({ kind: 'sep', style: sep });
+    } else if (!line.trim()) {
+      flush();
+    } else {
+      para.push(line);
+    }
+  }
+  flush();
+  return blocks;
+}
+
+/**
+ * Wrap one paragraph. List items get a hanging indent and are laid out as a block,
+ * wrapped at `listW` (narrower than the text in centred designs, so the list reads as
+ * an inset block instead of a flush-left slab between centred paragraphs).
+ */
+function wrapParagraph(raw: RawLine[], style: TextStyle, maxW: number, itemGap: number, listW = maxW): Line[] {
   const out: Line[] = [];
-  for (const rawWords of hardLines) {
-    const words: Word[] = rawWords.map((pieces) => {
+  const toWords = (rawWords: RawPiece[][]): Word[] =>
+    rawWords.map((pieces) => {
       const ps = pieces.map((p) => ({ ...p, w: measure(p.text, style.font, style.spacing) }));
       return { pieces: ps, w: ps.reduce((a, p) => a + p.w, 0) };
     });
-    if (!words.length) {
-      out.push({ words: [], w: 0, last: true });
-      continue;
-    }
+
+  const wrap = (words: Word[], width: number): Line[] => {
+    if (!words.length) return [{ words: [], w: 0, last: true }];
+    const lines: Line[] = [];
     let line: Word[] = [words[0]];
     let w = words[0].w;
     for (let i = 1; i < words.length; i++) {
       const next = w + style.spaceW + words[i].w;
-      if (next <= maxW) {
+      if (next <= width) {
         line.push(words[i]);
         w = next;
       } else {
-        out.push({ words: line, w, last: false });
+        lines.push({ words: line, w, last: false });
         line = [words[i]];
         w = words[i].w;
       }
     }
-    out.push({ words: line, w, last: true });
+    lines.push({ words: line, w, last: true });
+    return lines;
+  };
+
+  for (let i = 0; i < raw.length; ) {
+    if (!raw[i].marker) {
+      out.push(...wrap(toWords(raw[i].words), maxW));
+      i++;
+      continue;
+    }
+    // A run of consecutive list items shares one marker column and one block width
+    let j = i;
+    while (j < raw.length && raw[j].marker) j++;
+    const items = raw.slice(i, j);
+    const markerWs = items.map((it) => measure(it.marker!, style.font, style.spacing));
+    const indent = Math.max(...markerWs) + style.size * 0.45;
+    const group: Line[] = [];
+    items.forEach((it, k) => {
+      wrap(toWords(it.words), listW - indent).forEach((line, n) => {
+        group.push({
+          ...line,
+          gapBefore: k > 0 && n === 0 ? itemGap : 0,
+          list: { marker: n === 0 ? it.marker! : null, markerW: markerWs[k], indent, blockW: 0 },
+        });
+      });
+    });
+    const blockW = Math.max(...group.map((l) => l.list!.indent + l.w));
+    for (const l of group) l.list!.blockW = blockW;
+    out.push(...group);
+    i = j;
   }
   return out;
 }
@@ -200,8 +332,11 @@ export function computeLayout(d: Design, fmt: Format, font: FontDef): Layout {
   const usableH = H - padding * 2;
 
   const content = d.content.trim() || 'Your thoughts go here…';
-  const titleParsed: Parsed = d.title.trim() ? parseParagraphs(d.title, d.titleUppercase) : [];
-  const bodyParsed = parseParagraphs(content);
+  // Titles are plain text — lists and separators are a body feature
+  const titleParsed = d.title.trim()
+    ? parseBlocks(d.title, d.titleUppercase).flatMap((b) => (b.kind === 'text' ? b.lines : []))
+    : [];
+  const bodyParsed = parseBlocks(content);
   const hasTitle = titleParsed.length > 0;
 
   const build = (bs: number): Layout => {
@@ -213,19 +348,30 @@ export function computeLayout(d: Design, fmt: Format, font: FontDef): Layout {
     const paraGap = Math.round((bs * d.paraGap) / 100);
     const divGap = hasTitle ? Math.round(bs * (d.divider === 'none' ? 0.9 : 1.8)) : 0;
 
-    const titleLines = titleParsed.flatMap((p) => wrapParagraph(p, title, contentW));
-    const paras = bodyParsed.map((p) => wrapParagraph(p, body, contentW));
+    const itemGap = Math.round(bs * 0.3);
+    const sepH = Math.round(bs * 1.1);
+
+    const titleLines = wrapParagraph(
+      titleParsed.map((l) => ({ words: l.words })), title, contentW, 0,
+    );
+    const listW = d.align === 'center' ? Math.round(contentW * 0.86) : contentW;
+    const blocks: LayoutBlock[] = bodyParsed.map((b) =>
+      b.kind === 'sep'
+        ? { ...b, h: sepH }
+        : { kind: 'text', lines: wrapParagraph(b.lines, body, contentW, itemGap, listW) },
+    );
 
     let totalH = titleLines.length * titleLineH + divGap;
-    paras.forEach((lines, i) => {
-      totalH += lines.length * lineH;
-      if (i < paras.length - 1) totalH += paraGap;
+    blocks.forEach((b, i) => {
+      totalH += b.kind === 'sep' ? b.h : b.lines.reduce((h, l) => h + lineH + (l.gapBefore ?? 0), 0);
+      if (i < blocks.length - 1) totalH += paraGap;
     });
-    const tooWide = [...titleLines, ...paras.flat()].some((l) => l.w > contentW + 1);
+    const bodyLines = blocks.flatMap((b) => (b.kind === 'text' ? b.lines : []));
+    const tooWide = [...titleLines, ...bodyLines].some((l) => (l.list?.indent ?? 0) + l.w > contentW + 1);
 
     return {
       W, H, margin, contentW, top, usableH, body, title, lineH, titleLineH, paraGap, divGap,
-      titleLines, paras, totalH,
+      titleLines, blocks, totalH,
       fill: tooWide ? 101 : Math.round((totalH / usableH) * 100),
     };
   };

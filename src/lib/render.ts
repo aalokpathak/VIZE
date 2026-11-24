@@ -1,5 +1,5 @@
 import { hexToRgb, isDark, luminance, mix, rgbToHex, type RGB } from './colors.js';
-import type { Design, Pattern } from './design.js';
+import type { Design, Divider, Pattern } from './design.js';
 import type { Layout, Line, TextStyle } from './layout.js';
 import { createCanvas, type CanvasLike } from './platform.js';
 import type { Theme } from './themes.js';
@@ -197,27 +197,41 @@ function drawLine(ctx: CanvasRenderingContext2D, line: Line, baseline: number, o
   const { style, d, L } = o;
   if (!line.words.length) return;
   const size = style.size;
-  const justify = d.align === 'justify' && !line.last && line.words.length > 1;
-  const wordsW = line.words.reduce((a, w) => a + w.w, 0);
-  const gap = justify ? (L.contentW - wordsW) / (line.words.length - 1) : style.spaceW;
-  const lineW = justify ? L.contentW : line.w;
-  let x =
-    d.align === 'right' ? L.W - L.margin - lineW
-    : d.align === 'center' ? (L.W - lineW) / 2
-    : L.margin;
+  const blockX = (w: number) =>
+    d.align === 'right' ? L.W - L.margin - w : d.align === 'center' ? (L.W - w) / 2 : L.margin;
+
+  let x: number, gap: number, lineW: number;
+  let boxX: number; // where a caption box starts (includes the list marker)
+  let markerX: number | null = null;
+  if (line.list) {
+    // List items: the whole run is aligned as one block; text is left-aligned inside
+    // it with a hanging indent, so wrapped lines line up under the first word.
+    const x0 = blockX(line.list.blockW);
+    x = x0 + line.list.indent;
+    gap = style.spaceW;
+    lineW = line.w;
+    if (line.list.marker) markerX = x0;
+    boxX = markerX ?? x;
+  } else {
+    const justify = d.align === 'justify' && !line.last && line.words.length > 1;
+    const wordsW = line.words.reduce((a, w) => a + w.w, 0);
+    gap = justify ? (L.contentW - wordsW) / (line.words.length - 1) : style.spaceW;
+    lineW = justify ? L.contentW : line.w;
+    x = blockX(lineW);
+    boxX = x;
+  }
 
   if (d.effect === 'highlight') {
     const padX = size * 0.32;
     const top = baseline - size * 0.92;
     const h = size * 1.24;
     ctx.fillStyle = d.highlightColor;
-    roundRect(ctx, x - padX, top, lineW + padX * 2, h, size * 0.16);
+    roundRect(ctx, boxX - padX, top, x + lineW - boxX + padX * 2, h, size * 0.16);
     ctx.fill();
   }
 
   ctx.font = style.font;
   ctx.letterSpacing = `${style.spacing}px`;
-  const ink = (em: boolean) => (em ? o.emColor : o.color);
 
   ctx.save();
   if (d.effect === 'shadow') {
@@ -225,24 +239,28 @@ function drawLine(ctx: CanvasRenderingContext2D, line: Line, baseline: number, o
     ctx.shadowBlur = size * 0.2;
     ctx.shadowOffsetY = size * 0.07;
   }
+  const paint = (text: string, px: number, c: string) => {
+    if (d.effect === 'outline') {
+      ctx.strokeStyle = isDark(hexToRgb(c)) ? '#ffffff' : '#111111';
+      ctx.lineWidth = size * 0.12;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(text, px, baseline);
+    }
+    if (d.effect === 'glow') {
+      ctx.shadowColor = c;
+      ctx.shadowBlur = size * 0.5;
+      ctx.fillStyle = c;
+      ctx.fillText(text, px, baseline);
+    }
+    ctx.fillStyle = c;
+    ctx.fillText(text, px, baseline);
+  };
+  // Bullets and numbers take the emphasis colour
+  if (markerX !== null) paint(line.list!.marker!, markerX, o.emColor);
   for (const word of line.words) {
     let px = x;
     for (const p of word.pieces) {
-      const c = ink(p.em);
-      if (d.effect === 'outline') {
-        ctx.strokeStyle = isDark(hexToRgb(c)) ? '#ffffff' : '#111111';
-        ctx.lineWidth = size * 0.12;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(p.text, px, baseline);
-      }
-      if (d.effect === 'glow') {
-        ctx.shadowColor = c;
-        ctx.shadowBlur = size * 0.5;
-        ctx.fillStyle = c;
-        ctx.fillText(p.text, px, baseline);
-      }
-      ctx.fillStyle = c;
-      ctx.fillText(p.text, px, baseline);
+      paint(p.text, px, p.em ? o.emColor : o.color);
       px += p.w;
     }
     x += word.w + gap;
@@ -250,7 +268,7 @@ function drawLine(ctx: CanvasRenderingContext2D, line: Line, baseline: number, o
   ctx.restore();
 }
 
-function drawDivider(ctx: CanvasRenderingContext2D, d: Design, L: Layout, y: number, color: string) {
+function drawDivider(ctx: CanvasRenderingContext2D, style: Divider, d: Design, L: Layout, y: number, color: string) {
   const bs = L.body.size;
   const len = Math.min(180, L.contentW * 0.2);
   const cx = d.align === 'left' ? L.margin + len / 2 : d.align === 'right' ? L.W - L.margin - len / 2 : L.W / 2;
@@ -262,24 +280,48 @@ function drawDivider(ctx: CanvasRenderingContext2D, d: Design, L: Layout, y: num
   const hline = (x1: number, x2: number, yy: number) => {
     ctx.beginPath(); ctx.moveTo(x1, yy); ctx.lineTo(x2, yy); ctx.stroke();
   };
-  if (d.divider === 'line') {
+  if (style === 'line') {
     hline(cx - len / 2, cx + len / 2, y);
-  } else if (d.divider === 'double') {
+  } else if (style === 'double') {
     hline(cx - len / 2, cx + len / 2, y - lw * 1.6);
     ctx.lineWidth = lw * 0.6;
     hline(cx - len / 2, cx + len / 2, y + lw * 1.6);
-  } else if (d.divider === 'dots') {
+  } else if (style === 'dots') {
     const r = Math.max(4, bs * 0.085);
     for (const dx of [-r * 5, 0, r * 5]) {
       ctx.beginPath(); ctx.arc(cx + dx, y, r, 0, Math.PI * 2); ctx.fill();
     }
-  } else if (d.divider === 'diamond') {
+  } else if (style === 'diamond') {
     const r = Math.max(6, bs * 0.14);
     hline(cx - len / 2, cx - r * 2, y);
     hline(cx + r * 2, cx + len / 2, y);
     ctx.beginPath();
     ctx.moveTo(cx, y - r); ctx.lineTo(cx + r, y); ctx.lineTo(cx, y + r); ctx.lineTo(cx - r, y);
     ctx.closePath(); ctx.fill();
+  } else if (style === 'wave') {
+    const amp = Math.max(3, bs * 0.09);
+    const waves = 4;
+    ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const t = i / 64;
+      const px = cx - len / 2 + t * len;
+      const py = y + Math.sin(t * Math.PI * 2 * waves) * amp;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  } else if (style === 'stars') {
+    const r = Math.max(10, bs * 0.27);
+    for (const [dx, scale] of [[-r * 2.6, 0.65], [0, 1], [r * 2.6, 0.65]] as const) {
+      const rr = r * scale, sx = cx + dx;
+      ctx.beginPath();
+      ctx.moveTo(sx, y - rr);
+      ctx.quadraticCurveTo(sx, y, sx + rr, y);
+      ctx.quadraticCurveTo(sx, y, sx, y + rr);
+      ctx.quadraticCurveTo(sx, y, sx - rr, y);
+      ctx.quadraticCurveTo(sx, y, sx, y - rr);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -331,18 +373,24 @@ export function renderDesign(ctx: CanvasRenderingContext2D, d: Design, theme: Th
       });
       y += L.titleLineH;
     }
-    if (d.divider !== 'none') drawDivider(ctx, d, L, y + L.divGap * 0.45, pal.accent);
+    if (d.divider !== 'none') drawDivider(ctx, d.divider, d, L, y + L.divGap * 0.45, pal.accent);
     y += L.divGap;
   }
 
-  L.paras.forEach((lines, i) => {
-    for (const line of lines) {
-      drawLine(ctx, line, y + baselineIn(L.lineH, L.body.size), {
-        style: L.body, color: pal.text, emColor: pal.emphasis, d, L,
-      });
-      y += L.lineH;
+  L.blocks.forEach((block, i) => {
+    if (block.kind === 'sep') {
+      drawDivider(ctx, block.style, d, L, y + block.h / 2, pal.accent);
+      y += block.h;
+    } else {
+      for (const line of block.lines) {
+        y += line.gapBefore ?? 0;
+        drawLine(ctx, line, y + baselineIn(L.lineH, L.body.size), {
+          style: L.body, color: pal.text, emColor: pal.emphasis, d, L,
+        });
+        y += L.lineH;
+      }
     }
-    if (i < L.paras.length - 1) y += L.paraGap;
+    if (i < L.blocks.length - 1) y += L.paraGap;
   });
   ctx.restore();
 

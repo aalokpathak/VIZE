@@ -12,10 +12,10 @@ Designing happens entirely in your browser, and your current design is saved loc
 
 ### Canvas
 - **5 sizes:** Story / Reel 9:16 (1080 × 1920), Portrait Post 4:5 (1080 × 1350), Square 1:1 (1080 × 1080), Pinterest Pin 2:3 (1000 × 1500) and Landscape 16:9 (1920 × 1080).
-- **48 themes** in three groups:
-  - **Solid:** 26 palettes, such as Pure White, Midnight Black, Warm Cream and Electric Blue.
-  - **Gradient:** 16 themes, such as Sunset Reel, Orange Blaze, Aqua Lime and Insta Glow.
-  - **Mesh:** 6 themes made of soft blurred colour blobs, such as Aurora, Midnight Mesh and Lava Lamp.
+- **51 themes** in three groups:
+  - **Solid:** 27 palettes, such as Pure White, Midnight Black, Warm Cream, Electric Blue and Newsprint.
+  - **Gradient:** 17 themes, such as Sunset Reel, Orange Blaze, Aqua Lime, Insta Glow and Blue Lagoon.
+  - **Mesh:** 7 themes made of soft blurred colour blobs, such as Aurora, Midnight Mesh, Lava Lamp and Golden Hour.
 - **Custom background:** pick your own solid colour, or a two-colour gradient at any angle.
 - **Textures:** film grain, dots, grid, diagonal lines or ruled paper, with adjustable intensity.
 
@@ -25,6 +25,16 @@ Designing happens entirely in your browser, and your current design is saved loc
 - **Font colour** for the body, the title and *emphasis* separately. The primary colours (red, yellow, blue, black, white) come first, followed by more presets, a full colour picker and a hex input. **Auto** follows the theme.
 - **Emphasis:** wrap words in `*asterisks*` (or Markdown `**double**`) to colour them. The asterisks themselves never appear in the image.
 - **Line breaks:** a single new line breaks the line; a blank line starts a new paragraph.
+- **Bulleted and numbered lists:** select some lines and pick a style from the toolbar above the text box.
+  - Bullets: • ◦ ▪ – ✓ ★ ➤
+  - Numbers: `1.` `1)` `(1)` `a.` `A.` `i.`
+  - Wrapped lines hang neatly under the first word, and markers take the emphasis colour.
+  - In centred designs the list sits as an inset block, with its items still left-aligned so the markers line up.
+  - Press **Enter** to continue a list, and Enter on an empty item to end it. Shortcuts: `Ctrl/Cmd + Shift + 8` for bullets, `Ctrl/Cmd + Shift + 7` for numbers.
+- **Paragraph separators:** put the cursor in any paragraph and choose **Separator** to add a divider after it: line, double, dots, diamond, wave or stars. With the cursor on an existing separator, choosing another style switches it.
+- **Plain-text formatting:** lists and separators are ordinary text, so they work everywhere, including copy & paste, share links, server previews and AI assist. You can also type them yourself:
+  - Start a line with a bullet or number (`• item`, `- item`, `1. item`).
+  - Put a separator on a line of its own: `---`, `===`, `• • •`, `-◆-`, `~~~` or `✦ ✦ ✦`.
 - **Signature:** an optional handle such as `@yourname`, shown at the bottom.
 
 ### Layout
@@ -34,7 +44,7 @@ Designing happens entirely in your browser, and your current design is saved loc
 
 ### Effects
 - **Text effects:** plain, **caption boxes** (the black-pill reel captions, in any box colour), shadow, outline and glow.
-- **Title dividers:** line, double, dots or diamond.
+- **Title dividers:** line, double, dots, diamond, wave or stars.
 - **Decorations:** vignette, corner accents and a border frame.
 
 ### AI assist (optional)
@@ -161,6 +171,7 @@ src/
     panels.tsx         Text, Style, Layout and Effects tabs
     ColorPicker.tsx    primary colours, presets, custom picker
     FontPicker.tsx     font list grouped by category
+    FormatToolbar.tsx  bullets, numbers & separators toolbar
     ThemePicker.tsx    theme gallery by category
     Logo.tsx           SVG logo component
     Toast.tsx, ui.tsx, icons.tsx
@@ -174,6 +185,7 @@ src/
     formats.ts         canvas sizes
     colors.ts          colour helpers & presets
     platform.ts        canvas factory (browser or server)
+    formatting.ts      list & separator text commands (browser only)
     fonts.ts           font loading (browser only)
     api.ts             API client (browser only)
     actions.ts         export, share links, reset/undo, toasts (browser only)
